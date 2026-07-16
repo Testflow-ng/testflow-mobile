@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/models/exam.dart';
+import '../../core/providers/auth_provider.dart';
 import '../../core/providers/data_providers.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/theme.dart';
@@ -12,6 +13,17 @@ class HistoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(authProvider.select((s) => s.isGuest))) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('History'), centerTitle: false),
+        body: const EmptyView(
+          icon: Icons.history_rounded,
+          title: 'Sign in to see history',
+          message: 'Your exam attempts live in your account.',
+        ),
+      );
+    }
+
     final sessions = ref.watch(sessionsProvider);
 
     return Scaffold(

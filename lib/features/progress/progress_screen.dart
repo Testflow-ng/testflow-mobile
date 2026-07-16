@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/exam.dart';
+import '../../core/providers/auth_provider.dart';
 import '../../core/providers/data_providers.dart';
 import '../../core/theme/theme.dart';
 import '../../shared/widgets/widgets.dart';
@@ -11,6 +12,17 @@ class ProgressScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(authProvider.select((s) => s.isGuest))) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Progress'), centerTitle: false),
+        body: const EmptyView(
+          icon: Icons.insights_rounded,
+          title: 'Sign in to track progress',
+          message: 'Your analytics live in your account.',
+        ),
+      );
+    }
+
     final stats = ref.watch(statsProvider);
 
     return Scaffold(

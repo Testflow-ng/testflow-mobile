@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
@@ -54,12 +55,19 @@ const _publicPaths = {
 };
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authStatus = ref.watch(authProvider.select((s) => s.status));
+  final refresh = ValueNotifier(0);
+  ref.listen(
+    authProvider.select((s) => s.status),
+    (_, __) => refresh.value++,
+  );
+  ref.onDispose(refresh.dispose);
 
   return GoRouter(
     initialLocation: AppRoutes.splash,
     debugLogDiagnostics: false,
+    refreshListenable: refresh,
     redirect: (context, state) {
+      final authStatus = ref.read(authProvider).status;
       final path = state.matchedLocation;
       final isPublic = _publicPaths.contains(path);
 
