@@ -70,11 +70,15 @@ class AppTheme {
       // ─── App Bar ───────────────────────────────────────────────────────────
       appBarTheme: AppBarTheme(
         elevation: 0,
-        scrolledUnderElevation: 0.5,
-        backgroundColor: colorScheme.surface,
+        scrolledUnderElevation: 0,
+        backgroundColor: isDark
+            ? AppColors.backgroundDark
+            : AppColors.backgroundLight,
+        surfaceTintColor: Colors.transparent,
         foregroundColor: colorScheme.onSurface,
         centerTitle: false,
-        titleTextStyle: textTheme.titleLarge,
+        titleSpacing: AppDimens.screenPadding,
+        titleTextStyle: textTheme.headlineSmall,
         systemOverlayStyle: isDark
             ? SystemUiOverlayStyle.light
             : SystemUiOverlayStyle.dark,
