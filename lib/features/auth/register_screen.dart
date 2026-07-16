@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/api/api_exception.dart';
 import '../../core/theme/theme.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../shared/widgets/widgets.dart';
-import 'widgets/auth_divider.dart';
 import 'widgets/auth_error_banner.dart';
 import 'widgets/auth_footer_link.dart';
 import 'widgets/auth_header.dart';
-import 'widgets/google_button.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -21,17 +20,20 @@ class RegisterScreen extends ConsumerStatefulWidget {
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
+  final _usernameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
+  final _matricCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _isLoading = false;
-  bool _isGoogleLoading = false;
   bool _agreeTerms = false;
   String? _error;
 
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _usernameCtrl.dispose();
     _emailCtrl.dispose();
+    _matricCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
   }
@@ -50,38 +52,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     try {
       await ref.read(authProvider.notifier).register(
-            name: _nameCtrl.text.trim(),
+            fullName: _nameCtrl.text.trim(),
+            username: _usernameCtrl.text.trim().toLowerCase(),
             email: _emailCtrl.text.trim(),
+            matricNumber: _matricCtrl.text.trim(),
             password: _passwordCtrl.text,
           );
-      if (mounted) context.go(AppRoutes.home);
-    } catch (e) {
+      if (mounted) context.go(AppRoutes.verifyEmail);
+    } on ApiException catch (e) {
+      setState(() => _error = e.message);
+    } catch (_) {
       setState(() => _error = 'Registration failed. Please try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _signInWithGoogle() async {
-    setState(() {
-      _isGoogleLoading = true;
-      _error = null;
-    });
-
-    try {
-      await ref.read(authProvider.notifier).signInWithGoogle();
-      if (mounted) context.go(AppRoutes.home);
-    } catch (e) {
-      setState(() => _error = 'Google sign-in failed. Please try again.');
-    } finally {
-      if (mounted) setState(() => _isGoogleLoading = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -113,10 +101,32 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   hint: 'Your name',
                   controller: _nameCtrl,
                   keyboardType: TextInputType.name,
-                  prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
+                  prefixIcon:
+                      const Icon(Icons.person_outline_rounded, size: 20),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) {
+                    if (v == null || v.trim().length < 2) {
                       return 'Name is required';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: AppDimens.space4),
+                AppTextField(
+                  label: 'Username',
+                  hint: 'e.g. adaeze_o',
+                  controller: _usernameCtrl,
+                  prefixIcon:
+                      const Icon(Icons.alternate_email_rounded, size: 20),
+                  validator: (v) {
+                    final value = v?.trim().toLowerCase() ?? '';
+                    if (value.length < 3) {
+                      return 'Username must be at least 3 characters';
+                    }
+                    if (value.length > 20) {
+                      return 'Username must be at most 20 characters';
+                    }
+                    if (!RegExp(r'^[a-z0-9_]+$').hasMatch(value)) {
+                      return 'Only letters, numbers, and underscores';
                     }
                     return null;
                   },
@@ -136,16 +146,29 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 const SizedBox(height: AppDimens.space4),
                 AppTextField(
+                  label: 'Matric number (optional)',
+                  hint: 'e.g. CSC/2021/044',
+                  controller: _matricCtrl,
+                  prefixIcon: const Icon(Icons.badge_outlined, size: 20),
+                ),
+                const SizedBox(height: AppDimens.space4),
+                AppTextField(
                   label: 'Password',
                   controller: _passwordCtrl,
                   obscureText: true,
                   textInputAction: TextInputAction.done,
                   prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
                   onSubmitted: (_) => _submit(),
+                  helperText: 'At least 8 characters with a letter and a number',
                   validator: (v) {
-                    if (v == null || v.isEmpty) return 'Password is required';
-                    if (v.length < 6) {
-                      return 'Password must be at least 6 characters';
+                    if (v == null || v.length < 8) {
+                      return 'Password must be at least 8 characters';
+                    }
+                    if (!RegExp(r'[A-Za-z]').hasMatch(v)) {
+                      return 'Password must include a letter';
+                    }
+                    if (!RegExp(r'\d').hasMatch(v)) {
+                      return 'Password must include a number';
                     }
                     return null;
                   },
@@ -161,13 +184,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   isFullWidth: true,
                   isLoading: _isLoading,
                   onPressed: _submit,
-                ),
-                const SizedBox(height: AppDimens.space5),
-                const AuthDivider(),
-                const SizedBox(height: AppDimens.space5),
-                GoogleButton(
-                  onPressed: _signInWithGoogle,
-                  isLoading: _isGoogleLoading,
                 ),
                 const SizedBox(height: AppDimens.space7),
                 AuthFooterLink(

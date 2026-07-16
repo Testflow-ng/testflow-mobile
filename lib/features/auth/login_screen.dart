@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/api/api_exception.dart';
 import '../../core/theme/theme.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../shared/widgets/widgets.dart';
-import 'widgets/auth_divider.dart';
 import 'widgets/auth_error_banner.dart';
 import 'widgets/auth_footer_link.dart';
 import 'widgets/auth_header.dart';
-import 'widgets/google_button.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -23,7 +22,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _isLoading = false;
-  bool _isGoogleLoading = false;
   String? _error;
 
   @override
@@ -45,27 +43,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             email: _emailCtrl.text.trim(),
             password: _passwordCtrl.text,
           );
-      if (mounted) context.go(AppRoutes.home);
-    } catch (e) {
-      setState(() => _error = 'Invalid email or password. Please try again.');
+      if (!mounted) return;
+      final auth = ref.read(authProvider);
+      context.go(
+        auth.needsUsername ? AppRoutes.usernameSetup : AppRoutes.home,
+      );
+    } on ApiException catch (e) {
+      setState(() => _error = e.message);
+    } catch (_) {
+      setState(() => _error = 'Something went wrong. Please try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _signInWithGoogle() async {
-    setState(() {
-      _isGoogleLoading = true;
-      _error = null;
-    });
-
-    try {
-      await ref.read(authProvider.notifier).signInWithGoogle();
-      if (mounted) context.go(AppRoutes.home);
-    } catch (e) {
-      setState(() => _error = 'Google sign-in failed. Please try again.');
-    } finally {
-      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -118,9 +106,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   onSubmitted: (_) => _submit(),
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Password is required';
-                    if (v.length < 6) {
-                      return 'Password must be at least 6 characters';
-                    }
                     return null;
                   },
                 ),
@@ -144,13 +129,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   isFullWidth: true,
                   isLoading: _isLoading,
                   onPressed: _submit,
-                ),
-                const SizedBox(height: AppDimens.space5),
-                const AuthDivider(),
-                const SizedBox(height: AppDimens.space5),
-                GoogleButton(
-                  onPressed: _signInWithGoogle,
-                  isLoading: _isGoogleLoading,
                 ),
                 const SizedBox(height: AppDimens.space7),
                 AuthFooterLink(

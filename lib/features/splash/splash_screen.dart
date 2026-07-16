@@ -39,8 +39,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _start() async {
-    await _controller.forward();
-    await Future.delayed(const Duration(milliseconds: 900));
+    await Future.wait([
+      _controller.forward(),
+      ref.read(authProvider.notifier).bootstrap(),
+    ]);
+    await Future.delayed(const Duration(milliseconds: 400));
     _navigate();
   }
 
@@ -51,6 +54,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     if (!onboardingDone) {
       context.go(AppRoutes.onboarding);
+    } else if (authState.isAuthenticated && authState.needsUsername) {
+      context.go(AppRoutes.usernameSetup);
     } else if (authState.isAuthenticated || authState.isGuest) {
       context.go(AppRoutes.home);
     } else {
