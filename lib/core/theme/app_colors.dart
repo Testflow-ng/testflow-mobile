@@ -29,9 +29,9 @@ class AppColors {
   static const Color neutralForeground = Color(0xFFFFFFFF);
 
   // ─── Light Surface / Text ──────────────────────────────────────────────────
-  static const Color backgroundLight = Color(0xFFF8FAFC);   // gray-50
+  static const Color backgroundLight = Color(0xFFF4F6F9);
   static const Color surfaceLight = Color(0xFFFFFFFF);
-  static const Color surfaceStrongLight = Color(0xFFF8FAFC);
+  static const Color surfaceStrongLight = Color(0xFFEDF1F5);
   static const Color borderLight = Color(0xFFE2E8F0);
   static const Color borderStrongLight = Color(0xFFCBD5E1);
   static const Color textPrimaryLight = Color(0xFF0F172A);  // gray-900
@@ -39,9 +39,9 @@ class AppColors {
   static const Color textMutedLight = Color(0xFF64748B);
 
   // ─── Dark Surface / Text ───────────────────────────────────────────────────
-  static const Color backgroundDark = Color(0xFF020617);
-  static const Color surfaceDark = Color(0xFF111827);
-  static const Color surfaceStrongDark = Color(0xFF0F172A);
+  static const Color backgroundDark = Color(0xFF0A0F1E);
+  static const Color surfaceDark = Color(0xFF141B2E);
+  static const Color surfaceStrongDark = Color(0xFF1C2440);
   static const Color borderDark = Color(0xFF334155);
   static const Color borderStrongDark = Color(0xFF475569);
   static const Color textPrimaryDark = Color(0xFFE2E8F0);

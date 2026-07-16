@@ -22,11 +22,10 @@ class OptionTile extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primary = theme.colorScheme.primary;
-    final border = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Material(
       color: isSelected
-          ? primary.withOpacity(0.08)
+          ? primary.withOpacity(isDark ? 0.16 : 0.07)
           : (isDark ? AppColors.surfaceDark : AppColors.surfaceLight),
       borderRadius: BorderRadius.circular(AppDimens.radiusMd),
       child: InkWell(
@@ -37,8 +36,8 @@ class OptionTile extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppDimens.radiusMd),
             border: Border.all(
-              color: isSelected ? primary : border,
-              width: isSelected ? 1.5 : 1,
+              color: isSelected ? primary : Colors.transparent,
+              width: 1.5,
             ),
           ),
           child: Row(

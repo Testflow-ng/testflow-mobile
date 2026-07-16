@@ -30,6 +30,8 @@ void main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final apiClient = await ApiClient.create();
+  // Wake the backend early so the first real request does not hit a cold start.
+  apiClient.warmUp();
 
   runApp(
     ProviderScope(

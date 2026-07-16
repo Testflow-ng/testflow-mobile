@@ -85,42 +85,40 @@ class _ScoreHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.all(AppDimens.space6),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-        border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.borderLight,
-        ),
-      ),
+      radius: AppDimens.radiusLg,
       child: Column(
         children: [
-          SizedBox(
-            width: 128,
-            height: 128,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                CircularProgressIndicator(
-                  value: result.score / 100,
-                  strokeWidth: 8,
-                  strokeCap: StrokeCap.round,
-                  color: _scoreColor,
-                  backgroundColor:
-                      theme.colorScheme.onSurface.withOpacity(0.08),
-                ),
-                Center(
-                  child: Text(
-                    '${result.score}%',
-                    style: theme.textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.w800,
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: result.score / 100),
+            duration: const Duration(milliseconds: 1100),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, _) => SizedBox(
+              width: 128,
+              height: 128,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CircularProgressIndicator(
+                    value: value,
+                    strokeWidth: 8,
+                    strokeCap: StrokeCap.round,
+                    color: _scoreColor,
+                    backgroundColor:
+                        theme.colorScheme.onSurface.withOpacity(0.08),
+                  ),
+                  Center(
+                    child: Text(
+                      '${(value * 100).round()}%',
+                      style: theme.textTheme.displaySmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(height: AppDimens.space5),

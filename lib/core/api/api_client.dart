@@ -22,8 +22,10 @@ class ApiClient {
     final dio = Dio(
       BaseOptions(
         baseUrl: ApiConfig.baseUrl,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 30),
+        // Generous timeouts: the backend sleeps on the free tier and a cold
+        // start can take well over 30 seconds.
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 60),
         headers: {'Content-Type': 'application/json'},
       ),
     );
@@ -91,4 +93,28 @@ class ApiClient {
   }
 
   Future<void> clearCookies() => _cookieJar.deleteAll();
+
+  /// Whether any auth cookie is stored for the API host.
+  Future<bool> hasSession() async {
+    final cookies = await Future.wait([
+      _cookieJar.loadForRequest(Uri.parse('${ApiConfig.baseUrl}/api')),
+      _cookieJar
+          .loadForRequest(Uri.parse('${ApiConfig.baseUrl}/api/auth/refresh')),
+    ]);
+    return cookies
+        .expand((list) => list)
+        .any((c) => c.name == 'tf_access' || c.name == 'tf_refresh');
+  }
+
+  /// Fire-and-forget ping that wakes a sleeping backend early.
+  void warmUp() {
+    _dio
+        .get(
+          '/health',
+          options: Options(
+            receiveTimeout: const Duration(seconds: 90),
+          ),
+        )
+        .ignore();
+  }
 }

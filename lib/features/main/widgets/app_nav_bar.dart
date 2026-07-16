@@ -42,9 +42,10 @@ class AppNavBar extends StatelessWidget {
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppDimens.space3,
-            vertical: AppDimens.space2,
+          padding: const EdgeInsets.only(
+            left: AppDimens.space3,
+            right: AppDimens.space3,
+            top: AppDimens.space1,
           ),
           child: Row(
             children: [
@@ -88,38 +89,27 @@ class _NavItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimens.space5,
-              vertical: AppDimens.space1,
-            ),
-            decoration: BoxDecoration(
-              color: isActive
-                  ? activeColor.withOpacity(0.12)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(AppDimens.radiusFull),
-            ),
-            child: Icon(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppDimens.space1),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
               isActive ? destination.activeIcon : destination.icon,
               color: color,
-              size: AppDimens.iconLg,
+              size: 23,
             ),
-          ),
-          const SizedBox(height: AppDimens.space1),
-          Text(
-            destination.label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-              color: color,
+            const SizedBox(height: 3),
+            Text(
+              destination.label,
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                color: color,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

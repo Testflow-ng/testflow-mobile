@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/exam.dart';
 import '../../../core/theme/theme.dart';
+import '../../../shared/widgets/widgets.dart';
 
 class StatsStrip extends StatelessWidget {
   final StudentStats stats;
@@ -14,18 +15,11 @@ class StatsStrip extends StatelessWidget {
     final divider = Container(
       width: 1,
       height: 36,
-      color: isDark ? AppColors.borderDark : AppColors.borderLight,
+      color: (isDark ? Colors.white : AppColors.gray900).withOpacity(0.06),
     );
 
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.symmetric(vertical: AppDimens.space4),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-        border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.borderLight,
-        ),
-      ),
       child: Row(
         children: [
           _Cell(label: 'Exams', value: '${stats.totalExams}'),

@@ -43,7 +43,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       _controller.forward(),
       ref.read(authProvider.notifier).bootstrap(),
     ]);
-    await Future.delayed(const Duration(milliseconds: 400));
     _navigate();
   }
 

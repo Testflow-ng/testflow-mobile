@@ -31,7 +31,7 @@ class ApiException implements Exception {
       code: code ?? 'NETWORK_ERROR',
       message: message ??
           (response == null
-              ? 'Could not reach the server. Check your connection.'
+              ? 'Could not reach the server. It may be waking up, wait a few seconds and try again.'
               : 'Something went wrong. Please try again.'),
     );
   }

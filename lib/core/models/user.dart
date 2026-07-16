@@ -46,5 +46,20 @@ class User {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'fullName': fullName,
+        'username': username,
+        'email': email,
+        'matricNumber': matricNumber,
+        'role': role,
+        'level': level,
+        'department': department,
+        'streakCount': streakCount,
+        'pinnedSubjects': pinnedSubjects,
+        'showOnLeaderboard': showOnLeaderboard,
+        'isEmailVerified': isEmailVerified,
+      };
+
   String get firstName => fullName.trim().split(RegExp(r'\s+')).first;
 }

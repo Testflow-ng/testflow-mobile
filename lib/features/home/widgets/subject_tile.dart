@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/subject.dart';
 import '../../../core/theme/theme.dart';
+import '../../../shared/widgets/widgets.dart';
 
 class SubjectTile extends StatelessWidget {
   final Subject subject;
@@ -31,24 +32,11 @@ class SubjectTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
-    return Material(
-      color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-      borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-        child: Container(
-          padding: const EdgeInsets.all(AppDimens.space4),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-            border: Border.all(
-              color: isDark ? AppColors.borderDark : AppColors.borderLight,
-            ),
-          ),
-          child: Row(
-            children: [
+    return AppCard(
+      onTap: onTap,
+      child: Row(
+        children: [
               Container(
                 width: 48,
                 height: 48,
@@ -100,9 +88,7 @@ class SubjectTile extends StatelessWidget {
                       : theme.colorScheme.onSurface.withOpacity(0.35),
                 ),
               ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }

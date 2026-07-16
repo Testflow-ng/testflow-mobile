@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/api_exception.dart';
 import '../models/user.dart';
@@ -32,14 +33,49 @@ class AuthState {
 
 class AuthNotifier extends Notifier<AuthState> {
   static const _keyIsGuest = 'is_guest';
+  static const _keyCachedUser = 'cached_user';
 
   @override
   AuthState build() => const AuthState();
 
+  void _cacheUser(Map<String, dynamic> json) {
+    ref.read(sharedPreferencesProvider).setString(_keyCachedUser, jsonEncode(json));
+  }
+
+  User? _readCachedUser() {
+    final raw = ref.read(sharedPreferencesProvider).getString(_keyCachedUser);
+    if (raw == null) return null;
+    try {
+      return User.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Resolves the session instantly from local state; the network is only
+  /// awaited when cookies exist but no profile has been cached yet.
   Future<void> bootstrap() async {
     final prefs = ref.read(sharedPreferencesProvider);
     if (prefs.getBool(_keyIsGuest) ?? false) {
       state = const AuthState(status: AuthStatus.guest);
+      return;
+    }
+
+    final hasSession = await ref.read(apiClientProvider).hasSession();
+    if (!hasSession) {
+      state = const AuthState(status: AuthStatus.unauthenticated);
+      return;
+    }
+
+    final cached = _readCachedUser();
+    if (cached != null) {
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        user: cached,
+        needsUsername: cached.username == null || cached.username!.isEmpty,
+      );
+      // Revalidate against the server without blocking startup.
+      Future(refreshMe).ignore();
       return;
     }
 
@@ -50,11 +86,19 @@ class AuthNotifier extends Notifier<AuthState> {
         user: me.user,
         needsUsername: me.needsUsername,
       );
-    } on ApiException {
-      state = const AuthState(status: AuthStatus.unauthenticated);
     } catch (_) {
       state = const AuthState(status: AuthStatus.unauthenticated);
     }
+  }
+
+  void _setAuthenticated(User user, {bool? needsUsername}) {
+    _cacheUser(user.toJson());
+    state = AuthState(
+      status: AuthStatus.authenticated,
+      user: user,
+      needsUsername:
+          needsUsername ?? (user.username == null || user.username!.isEmpty),
+    );
   }
 
   Future<void> login({required String email, required String password}) async {
@@ -62,11 +106,7 @@ class AuthNotifier extends Notifier<AuthState> {
         .read(authRepositoryProvider)
         .login(email: email, password: password);
     await ref.read(sharedPreferencesProvider).setBool(_keyIsGuest, false);
-    state = AuthState(
-      status: AuthStatus.authenticated,
-      user: user,
-      needsUsername: user.username == null || user.username!.isEmpty,
-    );
+    _setAuthenticated(user);
   }
 
   Future<void> register({
@@ -92,21 +132,20 @@ class AuthNotifier extends Notifier<AuthState> {
     if (!state.isAuthenticated) return;
     try {
       final me = await ref.read(authRepositoryProvider).me();
-      state = AuthState(
-        status: AuthStatus.authenticated,
-        user: me.user,
-        needsUsername: me.needsUsername,
-      );
+      _setAuthenticated(me.user, needsUsername: me.needsUsername);
     } on ApiException catch (e) {
       if (e.isUnauthenticated) {
+        ref.read(sharedPreferencesProvider).remove(_keyCachedUser);
         state = const AuthState(status: AuthStatus.unauthenticated);
       }
+    } catch (_) {
+      // Network hiccup: keep the cached session.
     }
   }
 
   Future<void> setUsername(String username) async {
     final user = await ref.read(authRepositoryProvider).setUsername(username);
-    state = state.copyWith(user: user, needsUsername: false);
+    _setAuthenticated(user, needsUsername: false);
   }
 
   Future<void> updateProfile({
@@ -117,7 +156,7 @@ class AuthNotifier extends Notifier<AuthState> {
           fullName: fullName,
           showOnLeaderboard: showOnLeaderboard,
         );
-    state = state.copyWith(user: user);
+    _setAuthenticated(user, needsUsername: state.needsUsername);
   }
 
   Future<void> changePassword({
@@ -128,6 +167,7 @@ class AuthNotifier extends Notifier<AuthState> {
           currentPassword: currentPassword,
           newPassword: newPassword,
         );
+    await ref.read(sharedPreferencesProvider).remove(_keyCachedUser);
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
@@ -139,6 +179,7 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> signOut() async {
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool(_keyIsGuest, false);
+    await prefs.remove(_keyCachedUser);
     try {
       await ref.read(authRepositoryProvider).logout();
     } catch (_) {

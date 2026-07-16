@@ -9,6 +9,7 @@ class AppDimens {
   static const double radiusSm = 6;    // 0.375rem
   static const double radiusMd = 12;   // 0.75rem
   static const double radiusLg = 24;   // 1.5rem
+  static const double radiusCard = 20;
   static const double radiusFull = 9999;
 
   // ─── Spacing scale (8-pt grid) ────────────────────────────────────────────

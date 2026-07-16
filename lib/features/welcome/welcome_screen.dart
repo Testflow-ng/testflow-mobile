@@ -89,14 +89,14 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                         AppButton(
                           label: 'Create Account',
                           isFullWidth: true,
-                          onPressed: () => context.go(AppRoutes.register),
+                          onPressed: () => context.push(AppRoutes.register),
                         ),
                         const SizedBox(height: AppDimens.space3),
                         AppButton(
                           label: 'Sign In',
                           variant: AppButtonVariant.outline,
                           isFullWidth: true,
-                          onPressed: () => context.go(AppRoutes.login),
+                          onPressed: () => context.push(AppRoutes.login),
                         ),
                         const SizedBox(height: AppDimens.space2),
                         AppButton(

@@ -63,7 +63,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go(AppRoutes.welcome),
+          onPressed: () => context.canPop() ? context.pop() : context.go(AppRoutes.welcome),
         ),
       ),
       body: SafeArea(
@@ -113,7 +113,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () => context.go(AppRoutes.forgotPassword),
+                    onPressed: () => context.push(AppRoutes.forgotPassword),
                     child: const Text(
                       'Forgot password?',
                       style: TextStyle(
@@ -134,7 +134,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 AuthFooterLink(
                   text: "Don't have an account?",
                   linkText: 'Create one',
-                  onTap: () => context.go(AppRoutes.register),
+                  onTap: () => context.pushReplacement(AppRoutes.register),
                 ),
               ],
             ),

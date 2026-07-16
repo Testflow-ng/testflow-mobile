@@ -197,21 +197,16 @@ class _InfoCard extends StatelessWidget {
         (Icons.apartment_outlined, 'Department', user.department!),
     ];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-        border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.borderLight,
-        ),
-      ),
+    return AppCard(
+      padding: EdgeInsets.zero,
       child: Column(
         children: [
           for (var i = 0; i < rows.length; i++) ...[
             if (i > 0)
               Divider(
                 height: 1,
-                color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                color: (isDark ? Colors.white : AppColors.gray900)
+                    .withOpacity(0.06),
               ),
             Padding(
               padding: const EdgeInsets.all(AppDimens.space4),

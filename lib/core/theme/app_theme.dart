@@ -164,21 +164,17 @@ class AppTheme {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-          borderSide: BorderSide(
-            color: isDark ? AppColors.borderDark : AppColors.borderLight,
-          ),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-          borderSide: BorderSide(
-            color: isDark ? AppColors.borderDark : AppColors.borderLight,
-          ),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-          borderSide: const BorderSide(
-            color: AppColors.primary,
-            width: 2,
+          borderSide: BorderSide(
+            color: isDark ? AppColors.primaryDark : AppColors.primary,
+            width: 1.5,
           ),
         ),
         errorBorder: OutlineInputBorder(
@@ -187,7 +183,7 @@ class AppTheme {
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-          borderSide: const BorderSide(color: AppColors.danger, width: 2),
+          borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
         ),
         hintStyle: textTheme.bodyMedium?.copyWith(
           color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,

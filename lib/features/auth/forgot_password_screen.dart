@@ -51,7 +51,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go(AppRoutes.login),
+          onPressed: () => context.canPop() ? context.pop() : context.go(AppRoutes.login),
         ),
       ),
       body: SafeArea(
@@ -182,7 +182,7 @@ class _SentView extends StatelessWidget {
           AppButton(
             label: 'Back to Sign In',
             isFullWidth: true,
-            onPressed: () => context.go(AppRoutes.login),
+            onPressed: () => context.canPop() ? context.pop() : context.go(AppRoutes.login),
           ),
           const SizedBox(height: AppDimens.space3),
           AppButton(

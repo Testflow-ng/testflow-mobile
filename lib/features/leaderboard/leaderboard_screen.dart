@@ -57,20 +57,11 @@ class _LeaderboardTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final name = entry.username != null && entry.username!.isNotEmpty
         ? '@${entry.username}'
         : entry.fullName;
 
-    return Container(
-      padding: const EdgeInsets.all(AppDimens.space4),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-        border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.borderLight,
-        ),
-      ),
+    return AppCard(
       child: Row(
         children: [
           Container(

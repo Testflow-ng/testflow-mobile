@@ -74,7 +74,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go(AppRoutes.welcome),
+          onPressed: () => context.canPop() ? context.pop() : context.go(AppRoutes.welcome),
         ),
       ),
       body: SafeArea(
@@ -189,7 +189,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 AuthFooterLink(
                   text: 'Already have an account?',
                   linkText: 'Sign in',
-                  onTap: () => context.go(AppRoutes.login),
+                  onTap: () => context.pushReplacement(AppRoutes.login),
                 ),
               ],
             ),

@@ -143,6 +143,20 @@ class AppTypography {
 class AppShadows {
   AppShadows._();
 
+  /// Soft layered card shadow for borderless light-mode surfaces.
+  static List<BoxShadow> get card => [
+    BoxShadow(
+      color: const Color(0xFF0F172A).withOpacity(0.04),
+      blurRadius: 2,
+      offset: const Offset(0, 1),
+    ),
+    BoxShadow(
+      color: const Color(0xFF0F172A).withOpacity(0.05),
+      blurRadius: 24,
+      offset: const Offset(0, 8),
+    ),
+  ];
+
   static List<BoxShadow> get xs => [
     BoxShadow(
       color: const Color(0xFF0F172A).withOpacity(0.04),
