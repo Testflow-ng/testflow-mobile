@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api/api_exception.dart';
@@ -9,6 +10,7 @@ import '../../core/providers/data_providers.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/theme.dart';
 import '../../shared/widgets/widgets.dart';
+import 'widgets/calculator_sheet.dart';
 import 'widgets/exam_timer.dart';
 import 'widgets/option_tile.dart';
 import 'widgets/question_palette.dart';
@@ -24,11 +26,14 @@ class ExamScreen extends ConsumerStatefulWidget {
 
 class _ExamScreenState extends ConsumerState<ExamScreen>
     with WidgetsBindingObserver {
+  static const _textScales = [1.0, 1.15, 1.3];
+
   ExamSession? _session;
   List<ExamQuestion> _questions = [];
   int _currentIndex = 0;
   int _secondsLeft = 0;
   int _strikes = 0;
+  int _textScaleIndex = 0;
   Timer? _ticker;
   bool _isLoading = true;
   bool _isSubmitting = false;
@@ -128,6 +133,7 @@ class _ExamScreenState extends ConsumerState<ExamScreen>
   }
 
   Future<void> _selectOption(int optionIndex) async {
+    HapticFeedback.selectionClick();
     final question = _questions[_currentIndex];
     setState(() {
       _questions[_currentIndex] =
@@ -152,6 +158,54 @@ class _ExamScreenState extends ConsumerState<ExamScreen>
         const SnackBar(content: Text('Could not save answer. Check your connection.')),
       );
     }
+  }
+
+  Future<void> _clearAnswer() async {
+    final question = _questions[_currentIndex];
+    if (question.selectedOption == null) return;
+    setState(() {
+      _questions[_currentIndex] = question.copyWith(selectedOption: null);
+    });
+    try {
+      await ref.read(examRepositoryProvider).saveAnswer(
+            widget.sessionId,
+            questionIndex: _currentIndex,
+            clearSelection: true,
+          );
+    } catch (_) {
+      if (mounted) {
+        setState(() => _questions[_currentIndex] = question);
+      }
+    }
+  }
+
+  void _cycleTextSize() {
+    setState(() {
+      _textScaleIndex = (_textScaleIndex + 1) % _textScales.length;
+    });
+  }
+
+  void _showRules() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Exam rules'),
+        content: const Text(
+          '1. The timer keeps running even if you leave the app.\n\n'
+          '2. Leaving the app during the exam counts as a strike. '
+          'Three strikes and the exam submits itself.\n\n'
+          '3. When time runs out, your answers are submitted automatically.\n\n'
+          '4. Every answer saves instantly, so nothing is lost if your '
+          'connection drops.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _toggleMarked() async {
@@ -282,6 +336,12 @@ class _ExamScreenState extends ConsumerState<ExamScreen>
           title: Text(_session?.subjectCode ?? ''),
           centerTitle: false,
           actions: [
+            IconButton(
+              onPressed: _showRules,
+              tooltip: 'Exam rules',
+              icon: const Icon(Icons.info_outline_rounded,
+                  size: AppDimens.iconMd),
+            ),
             ExamTimer(secondsLeft: _secondsLeft),
             const SizedBox(width: AppDimens.screenPadding),
           ],
@@ -324,23 +384,43 @@ class _ExamScreenState extends ConsumerState<ExamScreen>
                 ),
               ),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(AppDimens.screenPadding),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(question.stem, style: theme.textTheme.titleLarge),
-                      const SizedBox(height: AppDimens.space5),
-                      for (var i = 0; i < question.options.length; i++) ...[
-                        OptionTile(
-                          index: i,
-                          text: question.options[i],
-                          isSelected: question.selectedOption == i,
-                          onTap: () => _selectOption(i),
-                        ),
-                        const SizedBox(height: AppDimens.space3),
+                child: MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    textScaler:
+                        TextScaler.linear(_textScales[_textScaleIndex]),
+                  ),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(AppDimens.screenPadding),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(question.stem, style: theme.textTheme.titleLarge),
+                        const SizedBox(height: AppDimens.space5),
+                        for (var i = 0; i < question.options.length; i++) ...[
+                          OptionTile(
+                            index: i,
+                            text: question.options[i],
+                            isSelected: question.selectedOption == i,
+                            onTap: () => _selectOption(i),
+                          ),
+                          const SizedBox(height: AppDimens.space3),
+                        ],
+                        if (question.selectedOption != null)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              onPressed: _clearAnswer,
+                              icon: const Icon(Icons.undo_rounded,
+                                  size: AppDimens.iconSm),
+                              label: const Text('Clear answer'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: theme.colorScheme.onSurface
+                                    .withOpacity(0.5),
+                              ),
+                            ),
+                          ),
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -353,6 +433,8 @@ class _ExamScreenState extends ConsumerState<ExamScreen>
                 onNext: () => _goTo(_currentIndex + 1),
                 onMark: _toggleMarked,
                 onPalette: _showPalette,
+                onCalculator: () => showCalculatorSheet(context),
+                onTextSize: _cycleTextSize,
                 onSubmit: _confirmSubmit,
               ),
             ],
@@ -372,6 +454,8 @@ class _BottomBar extends StatelessWidget {
   final VoidCallback onNext;
   final VoidCallback onMark;
   final VoidCallback onPalette;
+  final VoidCallback onCalculator;
+  final VoidCallback onTextSize;
   final VoidCallback onSubmit;
 
   const _BottomBar({
@@ -383,6 +467,8 @@ class _BottomBar extends StatelessWidget {
     required this.onNext,
     required this.onMark,
     required this.onPalette,
+    required this.onCalculator,
+    required this.onTextSize,
     required this.onSubmit,
   });
 
@@ -390,12 +476,13 @@ class _BottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final mutedIcon = theme.colorScheme.onSurface.withOpacity(0.5);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(
-        AppDimens.screenPadding,
         AppDimens.space3,
-        AppDimens.screenPadding,
+        AppDimens.space3,
+        AppDimens.space3,
         AppDimens.space3,
       ),
       decoration: BoxDecoration(
@@ -408,32 +495,43 @@ class _BottomBar extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
+            visualDensity: VisualDensity.compact,
             onPressed: onMark,
             tooltip: 'Mark for review',
             icon: Icon(
-              isMarked ? Icons.bookmark_rounded : Icons.bookmark_outline_rounded,
-              color: isMarked
-                  ? AppColors.warning
-                  : theme.colorScheme.onSurface.withOpacity(0.5),
+              isMarked
+                  ? Icons.bookmark_rounded
+                  : Icons.bookmark_outline_rounded,
+              color: isMarked ? AppColors.warning : mutedIcon,
             ),
           ),
           IconButton(
+            visualDensity: VisualDensity.compact,
             onPressed: onPalette,
             tooltip: 'All questions',
-            icon: Icon(
-              Icons.grid_view_rounded,
-              color: theme.colorScheme.onSurface.withOpacity(0.5),
-            ),
+            icon: Icon(Icons.grid_view_rounded, color: mutedIcon),
+          ),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            onPressed: onCalculator,
+            tooltip: 'Calculator',
+            icon: Icon(Icons.calculate_outlined, color: mutedIcon),
+          ),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            onPressed: onTextSize,
+            tooltip: 'Text size',
+            icon: Icon(Icons.text_fields_rounded, color: mutedIcon),
           ),
           const Spacer(),
           if (canGoBack)
-            AppButton(
-              label: 'Back',
-              variant: AppButtonVariant.outline,
-              height: AppDimens.buttonMd,
+            IconButton(
               onPressed: onPrevious,
+              tooltip: 'Previous question',
+              icon: Icon(Icons.chevron_left_rounded,
+                  size: AppDimens.iconLg, color: mutedIcon),
             ),
-          const SizedBox(width: AppDimens.space2),
+          const SizedBox(width: AppDimens.space1),
           AppButton(
             label: isLast ? 'Submit' : 'Next',
             height: AppDimens.buttonMd,

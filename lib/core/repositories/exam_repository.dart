@@ -28,11 +28,15 @@ class ExamRepository {
     String id, {
     required int questionIndex,
     int? selectedOption,
+    bool clearSelection = false,
     bool? markedForReview,
   }) {
     return _client.patch('/api/exam-sessions/$id/answer', body: {
       'questionIndex': questionIndex,
-      if (selectedOption != null) 'selectedOption': selectedOption,
+      if (clearSelection)
+        'selectedOption': null
+      else if (selectedOption != null)
+        'selectedOption': selectedOption,
       if (markedForReview != null) 'markedForReview': markedForReview,
     });
   }
