@@ -1,140 +1,150 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../api/api_exception.dart';
+import '../models/user.dart';
+import 'api_providers.dart';
 import 'app_providers.dart';
 
-// ─── Auth State ───────────────────────────────────────────────────────────────
-enum AuthStatus { authenticated, unauthenticated, guest }
+enum AuthStatus { unknown, authenticated, unauthenticated, guest }
 
 class AuthState {
   final AuthStatus status;
-  final String? userId;
-  final String? displayName;
-  final String? email;
+  final User? user;
+  final bool needsUsername;
 
   const AuthState({
-    this.status = AuthStatus.unauthenticated,
-    this.userId,
-    this.displayName,
-    this.email,
+    this.status = AuthStatus.unknown,
+    this.user,
+    this.needsUsername = false,
   });
-
-  AuthState copyWith({
-    AuthStatus? status,
-    String? userId,
-    String? displayName,
-    String? email,
-  }) {
-    return AuthState(
-      status: status ?? this.status,
-      userId: userId ?? this.userId,
-      displayName: displayName ?? this.displayName,
-      email: email ?? this.email,
-    );
-  }
 
   bool get isAuthenticated => status == AuthStatus.authenticated;
   bool get isGuest => status == AuthStatus.guest;
+  bool get isVerified => user?.isEmailVerified ?? false;
+
+  AuthState copyWith({AuthStatus? status, User? user, bool? needsUsername}) {
+    return AuthState(
+      status: status ?? this.status,
+      user: user ?? this.user,
+      needsUsername: needsUsername ?? this.needsUsername,
+    );
+  }
 }
 
 class AuthNotifier extends Notifier<AuthState> {
-  static const _keyIsLoggedIn = 'is_logged_in';
-  static const _keyDisplayName = 'display_name';
-  static const _keyEmail = 'user_email';
   static const _keyIsGuest = 'is_guest';
 
-  SharedPreferences get _prefs => ref.read(sharedPreferencesProvider);
-
   @override
-  AuthState build() {
-    final prefs = _prefs;
-    final isGuest = prefs.getBool(_keyIsGuest) ?? false;
-    final isLoggedIn = prefs.getBool(_keyIsLoggedIn) ?? false;
+  AuthState build() => const AuthState();
 
-    if (isGuest) {
-      return const AuthState(status: AuthStatus.guest, displayName: 'Guest User');
+  Future<void> bootstrap() async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (prefs.getBool(_keyIsGuest) ?? false) {
+      state = const AuthState(status: AuthStatus.guest);
+      return;
     }
-    if (isLoggedIn) {
-      return AuthState(
+
+    try {
+      final me = await ref.read(authRepositoryProvider).me();
+      state = AuthState(
         status: AuthStatus.authenticated,
-        displayName: prefs.getString(_keyDisplayName) ?? 'TestFlow User',
-        email: prefs.getString(_keyEmail) ?? '',
+        user: me.user,
+        needsUsername: me.needsUsername,
       );
+    } on ApiException {
+      state = const AuthState(status: AuthStatus.unauthenticated);
+    } catch (_) {
+      state = const AuthState(status: AuthStatus.unauthenticated);
     }
-    return const AuthState(status: AuthStatus.unauthenticated);
   }
 
   Future<void> login({required String email, required String password}) async {
-    // Simulated auth — replace with real API call
-    await Future.delayed(const Duration(milliseconds: 1200));
-    final prefs = _prefs;
-    await prefs.setBool(_keyIsLoggedIn, true);
-    await prefs.setBool(_keyIsGuest, false);
-    await prefs.setString(_keyEmail, email);
-    await prefs.setString(_keyDisplayName, _nameFromEmail(email));
+    final user = await ref
+        .read(authRepositoryProvider)
+        .login(email: email, password: password);
+    await ref.read(sharedPreferencesProvider).setBool(_keyIsGuest, false);
     state = AuthState(
       status: AuthStatus.authenticated,
-      email: email,
-      displayName: _nameFromEmail(email),
+      user: user,
+      needsUsername: user.username == null || user.username!.isEmpty,
     );
   }
 
   Future<void> register({
-    required String name,
+    required String fullName,
+    required String username,
     required String email,
+    String? matricNumber,
     required String password,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 1200));
-    final prefs = _prefs;
-    await prefs.setBool(_keyIsLoggedIn, true);
-    await prefs.setBool(_keyIsGuest, false);
-    await prefs.setString(_keyEmail, email);
-    await prefs.setString(_keyDisplayName, name);
-    state = AuthState(
-      status: AuthStatus.authenticated,
+    final repo = ref.read(authRepositoryProvider);
+    await repo.register(
+      fullName: fullName,
+      username: username,
       email: email,
-      displayName: name,
+      matricNumber: matricNumber,
+      password: password,
     );
+    // Registration does not set auth cookies; sign in right after.
+    await login(email: email, password: password);
   }
 
-  Future<void> signInWithGoogle() async {
-    // Simulated auth until Google Sign-In is wired to the backend
-    await Future.delayed(const Duration(milliseconds: 1200));
-    final prefs = _prefs;
-    const email = 'student@gmail.com';
-    const name = 'TestFlow Student';
-    await prefs.setBool(_keyIsLoggedIn, true);
-    await prefs.setBool(_keyIsGuest, false);
-    await prefs.setString(_keyEmail, email);
-    await prefs.setString(_keyDisplayName, name);
-    state = const AuthState(
-      status: AuthStatus.authenticated,
-      email: email,
-      displayName: name,
-    );
+  Future<void> refreshMe() async {
+    if (!state.isAuthenticated) return;
+    try {
+      final me = await ref.read(authRepositoryProvider).me();
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        user: me.user,
+        needsUsername: me.needsUsername,
+      );
+    } on ApiException catch (e) {
+      if (e.isUnauthenticated) {
+        state = const AuthState(status: AuthStatus.unauthenticated);
+      }
+    }
   }
 
-  void continueAsGuest() {
-    _prefs.setBool(_keyIsGuest, true);
-    _prefs.remove(_keyIsLoggedIn);
-    state = const AuthState(
-      status: AuthStatus.guest,
-      displayName: 'Guest User',
-    );
+  Future<void> setUsername(String username) async {
+    final user = await ref.read(authRepositoryProvider).setUsername(username);
+    state = state.copyWith(user: user, needsUsername: false);
   }
 
-  Future<void> signOut() async {
-    final prefs = _prefs;
-    await prefs.remove(_keyIsLoggedIn);
-    await prefs.remove(_keyIsGuest);
-    await prefs.remove(_keyDisplayName);
-    await prefs.remove(_keyEmail);
+  Future<void> updateProfile({
+    String? fullName,
+    bool? showOnLeaderboard,
+  }) async {
+    final user = await ref.read(authRepositoryProvider).updateProfile(
+          fullName: fullName,
+          showOnLeaderboard: showOnLeaderboard,
+        );
+    state = state.copyWith(user: user);
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await ref.read(authRepositoryProvider).changePassword(
+          currentPassword: currentPassword,
+          newPassword: newPassword,
+        );
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
-  String _nameFromEmail(String email) {
-    final local = email.split('@').first;
-    if (local.isEmpty) return 'TestFlow User';
-    return local[0].toUpperCase() + local.substring(1);
+  void continueAsGuest() {
+    ref.read(sharedPreferencesProvider).setBool(_keyIsGuest, true);
+    state = const AuthState(status: AuthStatus.guest);
+  }
+
+  Future<void> signOut() async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setBool(_keyIsGuest, false);
+    try {
+      await ref.read(authRepositoryProvider).logout();
+    } catch (_) {
+      // Even if the server call fails, cookies are cleared locally.
+    }
+    state = const AuthState(status: AuthStatus.unauthenticated);
   }
 }
 
