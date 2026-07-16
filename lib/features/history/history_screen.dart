@@ -54,7 +54,7 @@ class HistoryScreen extends ConsumerWidget {
               separatorBuilder: (_, __) =>
                   const SizedBox(height: AppDimens.space3),
               itemBuilder: (context, index) =>
-                  _SessionTile(session: list[index]),
+                  SessionTile(session: list[index]),
             );
           },
         ),
@@ -63,10 +63,10 @@ class HistoryScreen extends ConsumerWidget {
   }
 }
 
-class _SessionTile extends StatelessWidget {
+class SessionTile extends StatelessWidget {
   final SessionSummary session;
 
-  const _SessionTile({required this.session});
+  const SessionTile({required this.session});
 
   Color _scoreColor(int score) {
     if (score >= 70) return AppColors.success;

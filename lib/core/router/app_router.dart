@@ -12,6 +12,8 @@ import '../../features/auth/verify_email_screen.dart';
 import '../../features/auth/username_setup_screen.dart';
 import '../../features/welcome/welcome_screen.dart';
 import '../../features/home/home_screen.dart';
+import '../../features/practice/practice_screen.dart';
+import '../../features/subjects/subject_setup_screen.dart';
 import '../../features/progress/progress_screen.dart';
 import '../../features/history/history_screen.dart';
 import '../../features/exam/exam_screen.dart';
@@ -20,7 +22,6 @@ import '../../features/leaderboard/leaderboard_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../features/profile/edit_profile_screen.dart';
 import '../../features/profile/change_password_screen.dart';
-import '../../features/settings/settings_screen.dart';
 import '../../features/main/main_shell.dart';
 
 class AppRoutes {
@@ -33,12 +34,13 @@ class AppRoutes {
   static const verifyEmail = '/verify-email';
   static const usernameSetup = '/username-setup';
   static const home = '/home';
+  static const practice = '/practice';
   static const progress = '/progress';
   static const history = '/history';
   static const profile = '/profile';
   static const editProfile = '/profile/edit';
   static const changePassword = '/profile/change-password';
-  static const settings = '/settings';
+  static const subjectSetup = '/subject-setup';
   static const leaderboard = '/leaderboard';
 
   static String exam(String id) => '/exam/$id';
@@ -136,8 +138,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ChangePasswordScreen(),
       ),
       GoRoute(
-        path: AppRoutes.settings,
-        builder: (context, state) => const SettingsScreen(),
+        path: AppRoutes.subjectSetup,
+        builder: (context, state) => SubjectSetupScreen(
+          isOnboarding: state.extra as bool? ?? false,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.progress,
+        builder: (context, state) => const ProgressScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
@@ -147,8 +155,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const HomeScreen(),
           ),
           GoRoute(
-            path: AppRoutes.progress,
-            builder: (context, state) => const ProgressScreen(),
+            path: AppRoutes.practice,
+            builder: (context, state) => const PracticeScreen(),
           ),
           GoRoute(
             path: AppRoutes.history,

@@ -58,7 +58,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             matricNumber: _matricCtrl.text.trim(),
             password: _passwordCtrl.text,
           );
-      if (mounted) context.go(AppRoutes.verifyEmail);
+      if (mounted) context.go(AppRoutes.subjectSetup, extra: true);
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } catch (_) {

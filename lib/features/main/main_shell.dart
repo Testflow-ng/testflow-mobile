@@ -15,9 +15,9 @@ class MainShell extends StatelessWidget {
       label: 'Home',
     ),
     AppNavDestination(
-      icon: Icons.insights_outlined,
-      activeIcon: Icons.insights_rounded,
-      label: 'Progress',
+      icon: Icons.edit_note_outlined,
+      activeIcon: Icons.edit_note_rounded,
+      label: 'Practice',
     ),
     AppNavDestination(
       icon: Icons.history_rounded,
@@ -33,7 +33,7 @@ class MainShell extends StatelessWidget {
 
   static const _routes = [
     AppRoutes.home,
-    AppRoutes.progress,
+    AppRoutes.practice,
     AppRoutes.history,
     AppRoutes.profile,
   ];
