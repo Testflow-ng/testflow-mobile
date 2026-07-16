@@ -15,21 +15,27 @@ class MainShell extends StatelessWidget {
       label: 'Home',
     ),
     AppNavDestination(
+      icon: Icons.insights_outlined,
+      activeIcon: Icons.insights_rounded,
+      label: 'Progress',
+    ),
+    AppNavDestination(
+      icon: Icons.history_rounded,
+      activeIcon: Icons.history_rounded,
+      label: 'History',
+    ),
+    AppNavDestination(
       icon: Icons.person_outline_rounded,
       activeIcon: Icons.person_rounded,
       label: 'Profile',
-    ),
-    AppNavDestination(
-      icon: Icons.settings_outlined,
-      activeIcon: Icons.settings_rounded,
-      label: 'Settings',
     ),
   ];
 
   static const _routes = [
     AppRoutes.home,
+    AppRoutes.progress,
+    AppRoutes.history,
     AppRoutes.profile,
-    AppRoutes.settings,
   ];
 
   int _locationToIndex(String location) {

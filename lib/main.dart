@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'core/api/api_client.dart';
 import 'core/theme/theme.dart';
+import 'core/providers/api_providers.dart';
 import 'core/providers/app_providers.dart';
 import 'core/router/app_router.dart';
 
@@ -27,11 +29,13 @@ void main() async {
   ));
 
   final prefs = await SharedPreferences.getInstance();
+  final apiClient = await ApiClient.create();
 
   runApp(
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        apiClientProvider.overrideWithValue(apiClient),
       ],
       child: const TestFlowApp(),
     ),

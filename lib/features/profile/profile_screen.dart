@@ -1,363 +1,278 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-import '../../core/theme/theme.dart';
+import '../../core/models/user.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/router/app_router.dart';
+import '../../core/theme/theme.dart';
 import '../../shared/widgets/widgets.dart';
 
-class ProfileScreen extends ConsumerStatefulWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
-  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authProvider);
+    final user = auth.user;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Profile'),
+        centerTitle: false,
+        actions: [
+          IconButton(
+            onPressed: () => context.push(AppRoutes.settings),
+            icon: const Icon(Icons.settings_outlined),
+          ),
+        ],
+      ),
+      body: user == null
+          ? const _GuestProfile()
+          : ListView(
+              padding: const EdgeInsets.all(AppDimens.screenPadding),
+              children: [
+                _ProfileHeader(user: user),
+                const SizedBox(height: AppDimens.space6),
+                _InfoCard(user: user),
+                const SizedBox(height: AppDimens.space6),
+                _MenuTile(
+                  icon: Icons.edit_outlined,
+                  label: 'Edit profile',
+                  onTap: () => context.push(AppRoutes.editProfile),
+                ),
+                _MenuTile(
+                  icon: Icons.lock_outline_rounded,
+                  label: 'Change password',
+                  onTap: () => context.push(AppRoutes.changePassword),
+                ),
+                if (!user.isEmailVerified)
+                  _MenuTile(
+                    icon: Icons.mark_email_unread_outlined,
+                    label: 'Verify email',
+                    onTap: () => context.push(AppRoutes.verifyEmail),
+                  ),
+                _SignOutTile(),
+              ],
+            ),
+    );
+  }
 }
 
-class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  String _version = '0.1.0';
+class _SignOutTile extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return _MenuTile(
+      icon: Icons.logout_rounded,
+      label: 'Sign out',
+      isDestructive: true,
+      onTap: () async {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Sign out?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Sign out'),
+              ),
+            ],
+          ),
+        );
+        if (confirmed == true) {
+          await ref.read(authProvider.notifier).signOut();
+          if (context.mounted) context.go(AppRoutes.welcome);
+        }
+      },
+    );
+  }
+}
+
+class _GuestProfile extends ConsumerWidget {
+  const _GuestProfile();
 
   @override
-  void initState() {
-    super.initState();
-    _loadVersion();
+  Widget build(BuildContext context, WidgetRef ref) {
+    return EmptyView(
+      icon: Icons.person_outline_rounded,
+      title: 'You are browsing as a guest',
+      message: 'Create an account to save your progress and take exams.',
+      action: AppButton(
+        label: 'Create Account',
+        onPressed: () async {
+          await ref.read(authProvider.notifier).signOut();
+          if (context.mounted) context.go(AppRoutes.register);
+        },
+      ),
+    );
   }
+}
 
-  Future<void> _loadVersion() async {
-    try {
-      final info = await PackageInfo.fromPlatform();
-      if (mounted) setState(() => _version = info.version);
-    } catch (_) {}
+class _ProfileHeader extends StatelessWidget {
+  final User user;
+
+  const _ProfileHeader({required this.user});
+
+  String get _initials {
+    final parts = user.fullName.trim().split(RegExp(r'\s+'));
+    if (parts.length == 1) {
+      return parts.first.isEmpty ? '?' : parts.first[0].toUpperCase();
+    }
+    return (parts.first[0] + parts.last[0]).toUpperCase();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final auth = ref.watch(authProvider);
-    final displayName = auth.displayName ?? 'TestFlow User';
-    final email = auth.email ?? 'guest@testflow.app';
-    final initials = _initials(displayName);
 
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            backgroundColor: theme.colorScheme.surface,
-            surfaceTintColor: Colors.transparent,
-            title: Text(
-              'Profile',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontFamily: 'BricolageGrotesque',
-                fontWeight: FontWeight.w700,
-              ),
+    return Column(
+      children: [
+        Container(
+          width: 88,
+          height: 88,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: theme.colorScheme.primary.withOpacity(0.12),
+          ),
+          child: Text(
+            _initials,
+            style: theme.textTheme.headlineLarge?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w800,
             ),
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(AppDimens.screenPadding),
-              child: Column(
-                children: [
-                  // Avatar
-                  Container(
-                    width: 90,
-                    height: 90,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: AppColors.primaryGradient,
-                      boxShadow: AppShadows.primaryGlow(AppColors.primary),
-                    ),
-                    child: Center(
-                      child: Text(
-                        initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.w700,
-                          fontFamily: 'BricolageGrotesque',
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppDimens.space4),
-
-                  // Name
-                  Text(
-                    displayName,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontFamily: 'BricolageGrotesque',
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-
-                  // Email
-                  Text(
-                    email,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.5),
-                    ),
-                  ),
-
-                  if (auth.isGuest) ...[
-                    const SizedBox(height: AppDimens.space3),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: AppColors.warning.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(AppDimens.radiusFull),
-                        border: Border.all(color: AppColors.warning.withOpacity(0.3)),
-                      ),
-                      child: const Text(
-                        '⚡ Guest Mode',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.warning,
-                        ),
-                      ),
-                    ),
-                  ],
-
-                  const SizedBox(height: AppDimens.space6),
-
-                  // Info cards
-                  _InfoSection(
-                    title: 'Account',
-                    items: [
-                      _InfoItem(
-                        icon: Icons.person_outline_rounded,
-                        label: 'Display Name',
-                        value: displayName,
-                        color: AppColors.primary,
-                      ),
-                      _InfoItem(
-                        icon: Icons.email_outlined,
-                        label: 'Email',
-                        value: email,
-                        color: AppColors.secondary,
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: AppDimens.space4),
-
-                  _InfoSection(
-                    title: 'App Info',
-                    items: [
-                      _InfoItem(
-                        icon: Icons.info_outline_rounded,
-                        label: 'Version',
-                        value: 'v$_version',
-                        color: AppColors.neutral,
-                      ),
-                      _InfoItem(
-                        icon: Icons.business_rounded,
-                        label: 'Developer',
-                        value: 'Eddyrus Media',
-                        color: AppColors.info,
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: AppDimens.space4),
-
-                  // About section
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(AppDimens.space5),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppColors.primary.withOpacity(0.08),
-                          AppColors.secondary.withOpacity(0.04),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-                      border: Border.all(
-                        color: AppColors.primary.withOpacity(0.15),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const AppLogo(size: 28),
-                        const SizedBox(height: AppDimens.space3),
-                        Text(
-                          'About TestFlow',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontFamily: 'BricolageGrotesque',
-                          ),
-                        ),
-                        const SizedBox(height: AppDimens.space2),
-                        Text(
-                          'TestFlow is a premium CBT platform designed to help students ace their university courses through rigorous, timed simulations and intelligent analytics.\n\nThis is Version 0.1.0 — an early preview that introduces the TestFlow brand. The full CBT experience is coming soon.',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            height: 1.7,
-                            color: theme.colorScheme.onSurface.withOpacity(0.65),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: AppDimens.space6),
-
-                  // Sign out button
-                  if (!auth.isGuest)
-                    AppButton(
-                      label: 'Sign Out',
-                      variant: AppButtonVariant.outline,
-                      isFullWidth: true,
-                      icon: const Icon(Icons.logout_rounded, size: 18),
-                      onPressed: () async {
-                        await ref.read(authProvider.notifier).signOut();
-                        if (context.mounted) context.go(AppRoutes.welcome);
-                      },
-                    )
-                  else
-                    AppButton(
-                      label: 'Create Account',
-                      isFullWidth: true,
-                      icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                      onPressed: () => context.go(AppRoutes.register),
-                    ),
-
-                  const SizedBox(height: AppDimens.space8),
-                ],
+        ),
+        const SizedBox(height: AppDimens.space4),
+        Text(user.fullName, style: theme.textTheme.headlineMedium),
+        if (user.username != null) ...[
+          const SizedBox(height: 2),
+          Text('@${user.username}', style: theme.textTheme.bodySmall),
+        ],
+        if (user.streakCount > 0) ...[
+          const SizedBox(height: AppDimens.space3),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppDimens.space3,
+              vertical: AppDimens.space1,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(AppDimens.radiusFull),
+            ),
+            child: Text(
+              '${user.streakCount} day streak',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
         ],
-      ),
+      ],
     );
-  }
-
-  String _initials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
-    return name.substring(0, name.length >= 2 ? 2 : 1).toUpperCase();
   }
 }
 
-class _InfoSection extends StatelessWidget {
-  final String title;
-  final List<_InfoItem> items;
+class _InfoCard extends StatelessWidget {
+  final User user;
 
-  const _InfoSection({required this.title, required this.items});
+  const _InfoCard({required this.user});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            title.toUpperCase(),
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1.2,
-              color: theme.colorScheme.onSurface.withOpacity(0.4),
-            ),
-          ),
+    final rows = <(IconData, String, String)>[
+      (Icons.email_outlined, 'Email', user.email),
+      if (user.matricNumber != null)
+        (Icons.badge_outlined, 'Matric number', user.matricNumber!),
+      if (user.level != null)
+        (Icons.school_outlined, 'Level', '${user.level} level'),
+      if (user.department != null)
+        (Icons.apartment_outlined, 'Department', user.department!),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.borderLight,
         ),
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-            borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-            border: Border.all(
-              color: isDark ? AppColors.borderDark : AppColors.borderLight,
-            ),
-          ),
-          child: Column(
-            children: items.asMap().entries.map((entry) {
-              final isLast = entry.key == items.length - 1;
-              return Column(
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0)
+              Divider(
+                height: 1,
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
+              ),
+            Padding(
+              padding: const EdgeInsets.all(AppDimens.space4),
+              child: Row(
                 children: [
-                  entry.value,
-                  if (!isLast)
-                    Divider(
-                      height: 1,
-                      indent: 56,
-                      color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                  Icon(
+                    rows[i].$1,
+                    size: AppDimens.iconMd,
+                    color: theme.colorScheme.onSurface.withOpacity(0.4),
+                  ),
+                  const SizedBox(width: AppDimens.space4),
+                  Text(rows[i].$2, style: theme.textTheme.labelMedium),
+                  const Spacer(),
+                  Flexible(
+                    child: Text(
+                      rows[i].$3,
+                      style: theme.textTheme.titleSmall,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                  ),
                 ],
-              );
-            }).toList(),
-          ),
-        ),
-      ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
 
-class _InfoItem extends StatelessWidget {
+class _MenuTile extends StatelessWidget {
   final IconData icon;
   final String label;
-  final String value;
-  final Color color;
+  final VoidCallback onTap;
+  final bool isDestructive;
 
-  const _InfoItem({
+  const _MenuTile({
     required this.icon,
     required this.label,
-    required this.value,
-    required this.color,
+    required this.onTap,
+    this.isDestructive = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final color =
+        isDestructive ? AppColors.danger : theme.colorScheme.onSurface;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimens.space4,
-        vertical: AppDimens.space4,
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: AppDimens.space2),
+      leading: Icon(icon, size: AppDimens.iconMd, color: color),
+      title: Text(
+        label,
+        style: theme.textTheme.titleSmall?.copyWith(color: color),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(AppDimens.radiusSm),
-            ),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurface.withOpacity(0.45),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  value,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+      trailing: Icon(
+        Icons.chevron_right_rounded,
+        color: theme.colorScheme.onSurface.withOpacity(0.3),
       ),
+      onTap: onTap,
     );
   }
 }
