@@ -8,9 +8,11 @@ import '../../core/providers/data_providers.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/theme.dart';
 import '../../shared/widgets/widgets.dart';
-import 'widgets/stat_card.dart';
+import 'widgets/home_header.dart';
+import 'widgets/resume_card.dart';
 import 'widgets/start_exam_sheet.dart';
-import 'widgets/subject_card.dart';
+import 'widgets/stats_strip.dart';
+import 'widgets/subject_tile.dart';
 import 'widgets/verify_banner.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -19,10 +21,12 @@ class HomeScreen extends ConsumerWidget {
   Future<void> _refresh(WidgetRef ref) async {
     ref.invalidate(subjectsProvider);
     ref.invalidate(statsProvider);
+    ref.invalidate(sessionsProvider);
     try {
       await Future.wait([
         ref.read(subjectsProvider.future),
         ref.read(statsProvider.future),
+        ref.read(sessionsProvider.future),
       ]);
     } catch (_) {
       // Errors are surfaced by the providers themselves.
@@ -33,12 +37,17 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
 
-    if (auth.isGuest) return const _GuestHome();
+    if (auth.isGuest || auth.user == null) return const _GuestHome();
 
-    final user = auth.user;
+    final user = auth.user!;
     final subjects = ref.watch(subjectsProvider);
     final stats = ref.watch(statsProvider);
+    final sessions = ref.watch(sessionsProvider);
     final theme = Theme.of(context);
+
+    final inProgress = sessions.valueOrNull
+        ?.where((session) => session.isInProgress)
+        .firstOrNull;
 
     return Scaffold(
       body: SafeArea(
@@ -51,68 +60,25 @@ class HomeScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(AppDimens.screenPadding),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Hi, ${user?.firstName ?? 'there'}',
-                                style: theme.textTheme.headlineLarge,
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Ready to practice today?',
-                                style: theme.textTheme.bodySmall,
-                              ),
-                            ],
-                          ),
-                        ),
-                        if ((user?.streakCount ?? 0) > 0)
-                          _StreakChip(count: user!.streakCount),
-                      ],
-                    ),
-                    const SizedBox(height: AppDimens.space5),
-                    if (user != null && !user.isEmailVerified) ...[
+                    HomeHeader(user: user),
+                    const SizedBox(height: AppDimens.space6),
+                    if (!user.isEmailVerified) ...[
                       const VerifyBanner(),
-                      const SizedBox(height: AppDimens.space5),
+                      const SizedBox(height: AppDimens.space4),
+                    ],
+                    if (inProgress != null) ...[
+                      ResumeCard(session: inProgress),
+                      const SizedBox(height: AppDimens.space4),
                     ],
                     stats.maybeWhen(
-                      data: (s) => Row(
-                        children: [
-                          Expanded(
-                            child: StatCard(
-                              label: 'Exams',
-                              value: '${s.totalExams}',
-                              icon: Icons.assignment_turned_in_outlined,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                          const SizedBox(width: AppDimens.space3),
-                          Expanded(
-                            child: StatCard(
-                              label: 'Average',
-                              value: '${s.averageScore}%',
-                              icon: Icons.speed_rounded,
-                              color: AppColors.info,
-                            ),
-                          ),
-                          const SizedBox(width: AppDimens.space3),
-                          Expanded(
-                            child: StatCard(
-                              label: 'Best',
-                              value: '${s.bestScore}%',
-                              icon: Icons.emoji_events_outlined,
-                              color: AppColors.success,
-                            ),
-                          ),
-                        ],
+                      data: (s) => Padding(
+                        padding:
+                            const EdgeInsets.only(bottom: AppDimens.space6),
+                        child: StatsStrip(stats: s),
                       ),
-                      orElse: () => const SizedBox.shrink(),
+                      orElse: () => const SizedBox(height: AppDimens.space2),
                     ),
-                    const SizedBox(height: AppDimens.space6),
-                    Text('Your subjects', style: theme.textTheme.headlineSmall),
+                    Text('Subjects', style: theme.textTheme.headlineSmall),
                     const SizedBox(height: AppDimens.space4),
                   ]),
                 ),
@@ -127,7 +93,7 @@ class HomeScreen extends ConsumerWidget {
                 sliver: subjects.when(
                   data: (list) => _SubjectList(
                     subjects: list,
-                    pinnedIds: user?.pinnedSubjects ?? const [],
+                    pinnedIds: user.pinnedSubjects,
                   ),
                   loading: () => const SliverToBoxAdapter(
                     child: Center(
@@ -183,12 +149,10 @@ class _SubjectList extends ConsumerWidget {
       separatorBuilder: (_, __) => const SizedBox(height: AppDimens.space3),
       itemBuilder: (context, index) {
         final subject = sorted[index];
-        return SubjectCard(
+        return SubjectTile(
           subject: subject,
           isPinned: pinnedIds.contains(subject.id),
           onTap: () => showStartExamSheet(context, subject),
-          onLeaderboard: () =>
-              context.push(AppRoutes.leaderboard, extra: subject),
           onTogglePin: () async {
             try {
               await ref.read(subjectRepositoryProvider).togglePin(subject.id);
@@ -203,45 +167,6 @@ class _SubjectList extends ConsumerWidget {
           },
         );
       },
-    );
-  }
-}
-
-class _StreakChip extends StatelessWidget {
-  final int count;
-
-  const _StreakChip({required this.count});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimens.space3,
-        vertical: AppDimens.space2,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.warning.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(AppDimens.radiusFull),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.local_fire_department_rounded,
-            size: AppDimens.iconSm,
-            color: AppColors.warning,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '$count day${count == 1 ? '' : 's'}',
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.onSurface,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

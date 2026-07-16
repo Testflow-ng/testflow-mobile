@@ -96,9 +96,32 @@ class _StartExamSheetState extends ConsumerState<StartExamSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(widget.subject.code, style: theme.textTheme.labelMedium),
-          const SizedBox(height: AppDimens.space1),
-          Text(widget.subject.title, style: theme.textTheme.headlineSmall),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.subject.code,
+                        style: theme.textTheme.labelMedium),
+                    const SizedBox(height: AppDimens.space1),
+                    Text(widget.subject.title,
+                        style: theme.textTheme.headlineSmall),
+                  ],
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  context.push(AppRoutes.leaderboard, extra: widget.subject);
+                },
+                icon: const Icon(Icons.leaderboard_outlined,
+                    size: AppDimens.iconSm),
+                label: const Text('Top 10'),
+              ),
+            ],
+          ),
           const SizedBox(height: AppDimens.space5),
           if (_error != null) ...[
             Text(
