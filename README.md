@@ -1,16 +1,42 @@
-# testflow
+# TestFlow Mobile
 
-TestFlow - Premium CBT Platform for Students
+The Flutter mobile application for TestFlow, a computer-based testing platform for students. It supports subjects, examinations, results, progress, achievements, and offline question-bank experiences.
 
-## Getting Started
+## Requirements
 
-This project is a starting point for a Flutter application.
+- Flutter SDK (stable channel)
+- Dart SDK, supplied with Flutter
+- Android Studio/Xcode for Android or iOS builds
 
-A few resources to get you started if this is your first Flutter project:
+## Run locally
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```bash
+git clone https://github.com/Testflow-ng/testflow-mobile.git
+cd testflow-mobile
+flutter pub get
+flutter run
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## API configuration
+
+The app defaults to the hosted TestFlow API. To point a local build to another API, supply `API_URL` when running it:
+
+```bash
+flutter run --dart-define=API_URL=http://localhost:5000
+```
+
+For an Android emulator, use `http://10.0.2.2:5000` to reach a backend running on your computer.
+
+## Useful commands
+
+```bash
+flutter analyze  # Check code quality
+flutter test     # Run tests
+flutter build apk
+flutter build ios
+```
+
+## Related repositories
+
+- [Frontend](https://github.com/Testflow-ng/testflow-frontend)
+- [Backend API](https://github.com/Testflow-ng/testflow-backend)
